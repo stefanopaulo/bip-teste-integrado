@@ -1,0 +1,26 @@
+# Maven
+target/
+!**/src/main/**
+!**/src/test/**
+
+# Compiled class files
+*.class
+
+# Logs
+*.log
+
+# IDE (Eclipse / STS)
+.project
+.classpath
+.settings/
+
+# IntelliJ (caso use)
+.idea/
+*.iml
+
+# VSCode
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
