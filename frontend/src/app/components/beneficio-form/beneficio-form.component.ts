@@ -11,26 +11,43 @@ import { Beneficio } from '../../models/beneficio.model';
   template: `
     <div class="modal-overlay" (click)="fechar.emit(false)">
       <div class="modal-content glass-panel" (click)="$event.stopPropagation()">
-        <h3 style="margin-bottom: 1.5rem;"><i class="fa-solid fa-pen-to-square"></i> {{ isEdicao ? 'Editar' : 'Novo' }} Benefício</h3>
-        
+        <h3 style="margin-bottom: 1.5rem;">
+          <i class="fa-solid fa-pen-to-square"></i> {{ isEdicao ? 'Editar' : 'Novo' }} Benefício
+        </h3>
+
         <form (ngSubmit)="salvar()" #form="ngForm">
           <div class="form-group">
             <label class="form-label">Nome</label>
-            <input type="text" class="form-control" name="nome" [(ngModel)]="model.nome" required>
+            <input type="text" class="form-control" name="nome" [(ngModel)]="model.nome" required />
           </div>
-          
+
           <div class="form-group">
-            <label class="form-label">Descrição</label>
-            <input type="text" class="form-control" name="descricao" [(ngModel)]="model.descricao" required>
+            <label class="form-label">Descrição (Opcional)</label>
+            <input
+              type="text"
+              class="form-control"
+              name="descricao"
+              [(ngModel)]="model.descricao"
+            />
           </div>
-          
+
           <div class="form-group">
             <label class="form-label">Valor (R$)</label>
-            <input type="number" step="0.01" class="form-control" name="valor" [(ngModel)]="model.valor" required>
+            <input
+              type="number"
+              step="0.01"
+              class="form-control"
+              name="valor"
+              [(ngModel)]="model.valor"
+              required
+              [disabled]="isEdicao"
+            />
           </div>
-          
+
           <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
-            <button type="button" class="btn btn-ghost" (click)="fechar.emit(false)">Cancelar</button>
+            <button type="button" class="btn btn-ghost" (click)="fechar.emit(false)">
+              Cancelar
+            </button>
             <button type="submit" class="btn btn-primary" [disabled]="!form.valid || loading">
               <i class="fa-solid fa-save"></i> {{ loading ? 'Salvando...' : 'Salvar' }}
             </button>
@@ -38,7 +55,7 @@ import { Beneficio } from '../../models/beneficio.model';
         </form>
       </div>
     </div>
-  `
+  `,
 })
 export class BeneficioFormComponent implements OnInit {
   @Input() beneficio?: Beneficio;
@@ -59,15 +76,26 @@ export class BeneficioFormComponent implements OnInit {
 
   salvar() {
     this.loading = true;
+
+    if (!this.model.descricao || this.model.descricao.trim() === '') {
+      this.model.descricao = null as any;
+    }
+
     if (this.isEdicao) {
       this.service.atualizar(this.model.id!, this.model).subscribe({
         next: () => this.fechar.emit(true),
-        error: (err) => { console.error(err); this.loading = false; }
+        error: (err) => {
+          console.error(err);
+          this.loading = false;
+        },
       });
     } else {
       this.service.inserir(this.model).subscribe({
         next: () => this.fechar.emit(true),
-        error: (err) => { console.error(err); this.loading = false; }
+        error: (err) => {
+          console.error(err);
+          this.loading = false;
+        },
       });
     }
   }

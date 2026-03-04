@@ -11,7 +11,7 @@ import { TransferenciaFormComponent } from '../transferencia-form/transferencia-
   standalone: true,
   imports: [CommonModule, BeneficioFormComponent, TransferenciaFormComponent],
   templateUrl: './beneficio-list.component.html',
-  styleUrls: ['./beneficio-list.component.css']
+  styleUrls: ['./beneficio-list.component.css'],
 })
 export class BeneficioListComponent implements OnInit {
   page: Page<Beneficio> | null = null;
@@ -25,7 +25,7 @@ export class BeneficioListComponent implements OnInit {
 
   constructor(
     private service: BeneficioService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit() {
@@ -47,12 +47,17 @@ export class BeneficioListComponent implements OnInit {
         // Mock data if API is down just for UI presentation (temporary fallback)
         this.page = {
           content: [
-            { id: 1, nome: "Benefício VT", descricao: "Vale Transporte", valor: 250.00 },
-            { id: 2, nome: "Benefício VR", descricao: "Vale Refeição", valor: 600.00 }
+            { id: 1, nome: 'Benefício VT', descricao: 'Vale Transporte', valor: 250.0 },
+            { id: 2, nome: 'Benefício VR', descricao: 'Vale Refeição', valor: 600.0 },
           ],
-          totalElements: 2, totalPages: 1, number: 0, size: 5, last: true, first: true
+          totalElements: 2,
+          totalPages: 1,
+          number: 0,
+          size: 5,
+          last: true,
+          first: true,
         } as Page<Beneficio>;
-      }
+      },
     });
   }
 
