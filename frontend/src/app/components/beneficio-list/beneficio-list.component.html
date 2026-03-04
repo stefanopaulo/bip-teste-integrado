@@ -1,0 +1,74 @@
+<div class="list-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+  <h2><i class="fa-solid fa-list" style="color: var(--primary); margin-right: 0.5rem;"></i> Lista de Benefícios</h2>
+  <div style="display: flex; gap: 1rem;">
+    <button class="btn btn-primary" (click)="abrirFormulario()">
+      <i class="fa-solid fa-plus"></i> Novo Benefício
+    </button>
+    <button class="btn btn-secondary" (click)="abrirTransferencia()" style="background: var(--surface); color: white; border: 1px solid var(--surface-border);">
+      <i class="fa-solid fa-arrow-right-arrow-left" style="color: var(--secondary)"></i> Transferir Saldo
+    </button>
+  </div>
+</div>
+
+<div class="glass-panel" style="padding: 1.5rem; overflow-x: auto;">
+  <div *ngIf="loading" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+    <i class="fa-solid fa-circle-notch fa-spin fa-2x"></i>
+    <p style="margin-top: 1rem">Carregando benefícios...</p>
+  </div>
+
+  <table *ngIf="!loading && page?.content?.length" class="table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Nome</th>
+        <th>Descrição</th>
+        <th>Valor (R$)</th>
+        <th style="min-width: 120px; text-align: center;">Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let item of page?.content">
+        <td>#{{ item.id }}</td>
+        <td><strong>{{ item.nome }}</strong></td>
+        <td>{{ item.descricao }}</td>
+        <td class="valor">R$ {{ item.valor | number:'1.2-2' }}</td>
+        <td style="text-align: center;">
+          <div style="display: flex; gap: 0.5rem; justify-content: center;">
+            <button class="btn-icon" (click)="abrirFormulario(item)" title="Editar" style="background: rgba(168, 85, 247, 0.2); color: #c084fc; border: none; cursor: pointer;">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+            <button class="btn-icon" (click)="item.id ? deletar(item.id) : null" title="Excluir" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: none; cursor: pointer;">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div *ngIf="!loading && !page?.content?.length" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+    Nenhum benefício encontrado.
+  </div>
+
+  <!-- Paginação -->
+  <div class="pagination" *ngIf="page && page.totalPages > 1">
+    <button class="btn btn-ghost" (click)="prevPage()" [disabled]="page.first">
+      <i class="fa-solid fa-chevron-left"></i> Anterior
+    </button>
+    <span class="page-info">Página {{ page.number + 1 }} de {{ page.totalPages }}  (Total: {{ page.totalElements }})</span>
+    <button class="btn btn-ghost" (click)="nextPage()" [disabled]="page.last">
+      Próximo <i class="fa-solid fa-chevron-right"></i>
+    </button>
+  </div>
+</div>
+
+<app-beneficio-form 
+  *ngIf="showForm" 
+  [beneficio]="selectedBeneficio"
+  (onClose)="fecharFormulario($event)">
+</app-beneficio-form>
+
+<app-transferencia-form
+  *ngIf="showTransfer"
+  (onClose)="fecharTransferencia($event)">
+</app-transferencia-form>
