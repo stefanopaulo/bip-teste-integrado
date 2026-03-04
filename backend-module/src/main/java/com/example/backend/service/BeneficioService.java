@@ -6,15 +6,17 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
-import com.example.backend.BeneficioMapper;
 import com.example.backend.dto.request.BeneficioRequest;
 import com.example.backend.dto.response.BeneficioResponse;
 import com.example.backend.exception.ConcorrenciaException;
 import com.example.backend.exception.OperacaoIlegalException;
 import com.example.backend.exception.RecursoNaoEncontradoException;
 import com.example.backend.exception.SaldoInsuficienteException;
+import com.example.backend.mapper.BeneficioMapper;
 import com.example.backend.model.Beneficio;
 import com.example.backend.repository.BeneficioRepository;
 
@@ -54,8 +56,9 @@ public class BeneficioService {
 
 		beneficio.setNome(request.nome());
 		beneficio.setValor(request.valor());
-		
-		if (request.descricao() != null) beneficio.setDescricao(request.descricao());		
+
+		if (request.descricao() != null)
+			beneficio.setDescricao(request.descricao());
 
 		return beneficioMapper.toResponse(beneficioRepository.save(beneficio));
 	}
@@ -69,16 +72,12 @@ public class BeneficioService {
 		beneficioRepository.save(beneficio);
 	}
 
+	@Retryable(retryFor = {
+			ObjectOptimisticLockingFailureException.class }, maxAttempts = 3, backoff = @Backoff(delay = 500))
 	@Transactional
 	public void transfer(Long fromId, Long toId, BigDecimal amount) {
 		validarDadosTransferencia(fromId, toId, amount);
 
-		List<Beneficio> beneficios = beneficioRepository.findAllById(List.of(fromId, toId));
-		
-		if (beneficios.size() < 2) {
-			throw new RecursoNaoEncontradoException("");
-		}
-		
 		Beneficio from = buscarBeneficioAtivo(fromId);
 		Beneficio to = buscarBeneficioAtivo(toId);
 

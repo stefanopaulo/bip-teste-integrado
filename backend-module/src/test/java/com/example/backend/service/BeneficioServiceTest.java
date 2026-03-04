@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -21,142 +22,142 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
-import com.example.backend.BeneficioMapper;
 import com.example.backend.dto.request.BeneficioRequest;
 import com.example.backend.dto.response.BeneficioResponse;
 import com.example.backend.exception.ConcorrenciaException;
 import com.example.backend.exception.RecursoNaoEncontradoException;
 import com.example.backend.exception.SaldoInsuficienteException;
+import com.example.backend.mapper.BeneficioMapper;
 import com.example.backend.model.Beneficio;
 import com.example.backend.repository.BeneficioRepository;
 
 @ExtendWith(MockitoExtension.class)
 class BeneficioServiceTest {
 
-    @Mock private BeneficioRepository repository;
-    @Mock private BeneficioMapper mapper;
-    @InjectMocks private BeneficioService service;
+	@Mock
+	private BeneficioRepository repository;
+	@Mock
+	private BeneficioMapper mapper;
+	@InjectMocks
+	private BeneficioService service;
 
-    private static final Long ID_VAL_1 = 1L;
-    private static final Long ID_VAL_2 = 2L;
-    private static final Long ID_INEXISTENTE = 999L;
-    private static final BigDecimal CEM = new BigDecimal("100.00");
-    private static final BigDecimal QUINHENTOS = new BigDecimal("500.00");
+	private static final Long ID_VAL_1 = 1L;
+	private static final Long ID_VAL_2 = 2L;
+	private static final Long ID_INEXISTENTE = 999L;
+	private static final BigDecimal CEM = new BigDecimal("100.00");
+	private static final BigDecimal QUINHENTOS = new BigDecimal("500.00");
 
-    // --- TESTES DE CRUD ---
+	// --- TESTES DE CRUD ---
 
-    @Test
-    void inserir_devePersistirERetornarResponse() {
-        var request = novoRequest();
-        var entidadeSemId = novaEntidade().id(null).build();
-        var entidadeSalva = novaEntidade().id(ID_VAL_1).build();
-        var response = novaResponse();
+	@Test
+	void inserir_devePersistirERetornarResponse() {
+		var request = novoRequest();
+		var entidadeSemId = novaEntidade().id(null).build();
+		var entidadeSalva = novaEntidade().id(ID_VAL_1).build();
+		var response = novaResponse();
 
-        when(mapper.toEntity(request)).thenReturn(entidadeSemId);
-        when(repository.save(entidadeSemId)).thenReturn(entidadeSalva);
-        when(mapper.toResponse(entidadeSalva)).thenReturn(response);
+		when(mapper.toEntity(request)).thenReturn(entidadeSemId);
+		when(repository.save(entidadeSemId)).thenReturn(entidadeSalva);
+		when(mapper.toResponse(entidadeSalva)).thenReturn(response);
 
-        var result = service.inserir(request);
+		var result = service.inserir(request);
 
-        assertEquals(response, result);
-        verify(repository).save(entidadeSemId);
-    }
+		assertEquals(response, result);
+		verify(repository).save(entidadeSemId);
+	}
 
-    @Test
-    void buscaBeneficioAtivoPorId_deveRetornarResponse_QuandoExiste() {
-        var beneficio = novaEntidade().id(ID_VAL_1).build();
-        var response = novaResponse();
+	@Test
+	void buscaBeneficioAtivoPorId_deveRetornarResponse_QuandoExiste() {
+		var beneficio = novaEntidade().id(ID_VAL_1).build();
+		var response = novaResponse();
 
-        mockRepositorioBusca(ID_VAL_1, beneficio);
-        when(mapper.toResponse(beneficio)).thenReturn(response);
+		mockRepositorioBusca(ID_VAL_1, beneficio);
+		when(mapper.toResponse(beneficio)).thenReturn(response);
 
-        var result = service.buscaBeneficioAtivoPorId(ID_VAL_1);
+		var result = service.buscaBeneficioAtivoPorId(ID_VAL_1);
 
-        assertEquals(response, result);
-    }
+		assertEquals(response, result);
+	}
 
-    @Test
-    void atualizar_deveAlterarDadosERetornarResponse() {
-        var existente = novaEntidade().valor(QUINHENTOS).build();
-        var request = new BeneficioRequest("Novo Nome", "Nova Desc", CEM);
-        
-        mockRepositorioBusca(ID_VAL_1, existente);
-        when(repository.save(any())).thenReturn(existente);
-        when(mapper.toResponse(any())).thenReturn(novaResponse());
+	@Test
+	void atualizar_deveAlterarDadosERetornarResponse() {
+		var existente = novaEntidade().valor(QUINHENTOS).build();
+		var request = new BeneficioRequest("Novo Nome", "Nova Desc", CEM);
 
-        service.atualizar(ID_VAL_1, request);
+		mockRepositorioBusca(ID_VAL_1, existente);
+		when(repository.save(any())).thenReturn(existente);
+		when(mapper.toResponse(any())).thenReturn(novaResponse());
 
-        verify(repository).save(argThat(b -> b.getValor().equals(CEM)));
-    }
+		service.atualizar(ID_VAL_1, request);
 
-    // --- TESTES DE TRANSFERÊNCIA ---
+		verify(repository).save(argThat(b -> b.getValor().equals(CEM)));
+	}
 
-    @Test
-    void transfer_deveMovimentarSaldosComSucesso() {
-        var origem = novaEntidade().id(ID_VAL_1).valor(QUINHENTOS).build();
-        var destino = novaEntidade().id(ID_VAL_2).valor(BigDecimal.ZERO).build();
+	// --- TESTES DE TRANSFERÊNCIA ---
 
-        mockRepositorioBusca(ID_VAL_1, origem);
-        mockRepositorioBusca(ID_VAL_2, destino);
+	@Test
+	void transfer_deveMovimentarSaldosComSucesso() {
+		var origem = novaEntidade().id(ID_VAL_1).valor(QUINHENTOS).build();
+		var destino = novaEntidade().id(ID_VAL_2).valor(BigDecimal.ZERO).build();
 
-        service.transfer(ID_VAL_1, ID_VAL_2, CEM);
+		mockRepositorioBusca(ID_VAL_1, origem);
+		mockRepositorioBusca(ID_VAL_2, destino);
 
-        assertAll(
-            () -> assertEquals(new BigDecimal("400.00"), origem.getValor()),
-            () -> assertEquals(CEM, destino.getValor()),
-            () -> verify(repository).saveAll(anyList())
-        );
-    }
+		service.transfer(ID_VAL_1, ID_VAL_2, CEM);
 
-    @Test
-    void transfer_deveLancarSaldoInsuficiente_QuandoSaldoForBaixo() {
-        var origem = novaEntidade().nome("Origem").valor(BigDecimal.TEN).build();
-        mockRepositorioBusca(ID_VAL_1, origem);
-        mockRepositorioBusca(ID_VAL_2, novaEntidade().build());
+		assertAll(() -> assertEquals(new BigDecimal("400.00"), origem.getValor()),
+				() -> assertEquals(CEM, destino.getValor()), () -> verify(repository).saveAllAndFlush(anyList()));
+	}
 
-        var ex = assertThrows(SaldoInsuficienteException.class, 
-            () -> service.transfer(ID_VAL_1, ID_VAL_2, CEM));
+	@Test
+	void transfer_deveLancarSaldoInsuficiente_QuandoSaldoForBaixo() {
+		var origem = novaEntidade().nome("Origem").valor(BigDecimal.TEN).build();
+		mockRepositorioBusca(ID_VAL_1, origem);
+		mockRepositorioBusca(ID_VAL_2, novaEntidade().build());
 
-        assertTrue(ex.getMessage().contains("saldo suficiente"));
-        verify(repository, never()).saveAll(any());
-    }
+		var ex = assertThrows(SaldoInsuficienteException.class, () -> service.transfer(ID_VAL_1, ID_VAL_2, CEM));
 
-    // --- TESTES DE EXCEÇÃO ---
+		assertTrue(ex.getMessage().contains("saldo suficiente"));
+		verify(repository, never()).saveAll(any());
+	}
 
-    @Test
-    void buscar_deveLancarRecursoNaoEncontrado_QuandoInativoOuInexistente() {
-        when(repository.findByIdAndAtivoTrue(ID_INEXISTENTE)).thenReturn(Optional.empty());
+	// --- TESTES DE EXCEÇÃO ---
 
-        assertThrows(RecursoNaoEncontradoException.class, 
-            () -> service.buscaBeneficioAtivoPorId(ID_INEXISTENTE));
-    }
+	@Test
+	void buscar_deveLancarRecursoNaoEncontrado_QuandoInativoOuInexistente() {
+		when(repository.findByIdAndAtivoTrue(ID_INEXISTENTE)).thenReturn(Optional.empty());
 
-    @Test
-    void transfer_deveLancarConcorrenciaException_EmCasoDeErroOptimisticLock() {
-        mockRepositorioBusca(ID_VAL_1, novaEntidade().build());
-        mockRepositorioBusca(ID_VAL_2, novaEntidade().build());
-        when(repository.saveAll(anyList())).thenThrow(ObjectOptimisticLockingFailureException.class);
+		assertThrows(RecursoNaoEncontradoException.class, () -> service.buscaBeneficioAtivoPorId(ID_INEXISTENTE));
+	}
 
-        assertThrows(ConcorrenciaException.class, () -> service.transfer(ID_VAL_1, ID_VAL_2, CEM));
-    }
+	@Test
+	void transfer_deveLancarConcorrenciaException_AposEsgotarRetries() {
+		// GIVEN
+		mockRepositorioBusca(ID_VAL_1, novaEntidade().build());
+		mockRepositorioBusca(ID_VAL_2, novaEntidade().build());
 
-    // --- MÉTODOS AUXILIARES ---
+		when(repository.saveAllAndFlush(anyList()))
+				.thenThrow(new ObjectOptimisticLockingFailureException("Erro de trava", new Throwable()));
 
-    private Beneficio.BeneficioBuilder novaEntidade() {
-        return Beneficio.builder()
-                .id(ID_VAL_1).nome("Beneficio Teste").descricao("Desc")
-                .valor(QUINHENTOS).ativo(true);
-    }
+		// WHEN & THEN
+		assertThrows(ConcorrenciaException.class, () -> service.transfer(ID_VAL_1, ID_VAL_2, CEM));
+	}
 
-    private BeneficioRequest novoRequest() {
-        return new BeneficioRequest("Beneficio Teste", "Desc", QUINHENTOS);
-    }
+	// --- MÉTODOS AUXILIARES ---
 
-    private BeneficioResponse novaResponse() {
-        return new BeneficioResponse(ID_VAL_1, "Beneficio Teste", "Desc", QUINHENTOS, true);
-    }
+	private Beneficio.BeneficioBuilder novaEntidade() {
+		return Beneficio.builder().id(ID_VAL_1).nome("Beneficio Teste").descricao("Desc").valor(QUINHENTOS).ativo(true);
+	}
 
-    private void mockRepositorioBusca(Long id, Beneficio retorno) {
-        when(repository.findByIdAndAtivoTrue(id)).thenReturn(Optional.of(retorno));
-    }
+	private BeneficioRequest novoRequest() {
+		return new BeneficioRequest("Beneficio Teste", "Desc", QUINHENTOS);
+	}
+
+	private BeneficioResponse novaResponse() {
+		return new BeneficioResponse(ID_VAL_1, "Beneficio Teste", "Desc", QUINHENTOS, true);
+	}
+
+	private void mockRepositorioBusca(Long id, Beneficio retorno) {
+		when(repository.findByIdAndAtivoTrue(eq(id))).thenReturn(Optional.of(retorno));
+	}
 }
