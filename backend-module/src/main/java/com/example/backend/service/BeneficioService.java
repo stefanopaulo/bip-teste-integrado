@@ -11,6 +11,7 @@ import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 import com.example.backend.dto.request.BeneficioRequest;
+import com.example.backend.dto.request.BeneficioUpdateRequest;
 import com.example.backend.dto.response.BeneficioResponse;
 import com.example.backend.exception.ConcorrenciaException;
 import com.example.backend.exception.OperacaoIlegalException;
@@ -39,7 +40,7 @@ public class BeneficioService {
 		Beneficio beneficio = beneficioMapper.toEntity(request);
 		return beneficioMapper.toResponse(beneficioRepository.save(beneficio));
 	}
-
+	
 	public Page<BeneficioResponse> buscaTodosBeneficiosAtivos(Pageable pageable) {
 		return beneficioRepository.findByAtivoTrue(pageable).map(beneficioMapper::toResponse);
 	}
@@ -51,15 +52,11 @@ public class BeneficioService {
 	}
 
 	@Transactional
-	public BeneficioResponse atualizar(Long id, BeneficioRequest request) {
+	public BeneficioResponse atualizar(Long id, BeneficioUpdateRequest request) {
 		Beneficio beneficio = buscarBeneficioAtivo(id);
 
-		beneficio.setNome(request.nome());
-		beneficio.setValor(request.valor());
-
-		if (request.descricao() != null)
-			beneficio.setDescricao(request.descricao());
-
+		beneficioMapper.updateRequest(beneficio, request);
+			
 		return beneficioMapper.toResponse(beneficioRepository.save(beneficio));
 	}
 

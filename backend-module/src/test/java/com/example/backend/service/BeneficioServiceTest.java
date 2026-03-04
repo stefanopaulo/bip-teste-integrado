@@ -23,6 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import com.example.backend.dto.request.BeneficioRequest;
+import com.example.backend.dto.request.BeneficioUpdateRequest;
 import com.example.backend.dto.response.BeneficioResponse;
 import com.example.backend.exception.ConcorrenciaException;
 import com.example.backend.exception.RecursoNaoEncontradoException;
@@ -81,8 +82,8 @@ class BeneficioServiceTest {
 
 	@Test
 	void atualizar_deveAlterarDadosERetornarResponse() {
-		var existente = novaEntidade().valor(QUINHENTOS).build();
-		var request = new BeneficioRequest("Novo Nome", "Nova Desc", CEM);
+		var existente = novaEntidade().nome("Novo Nome").build();
+		var request = new BeneficioUpdateRequest("Novo Nome", "Nova Desc");
 
 		mockRepositorioBusca(ID_VAL_1, existente);
 		when(repository.save(any())).thenReturn(existente);
@@ -90,7 +91,7 @@ class BeneficioServiceTest {
 
 		service.atualizar(ID_VAL_1, request);
 
-		verify(repository).save(argThat(b -> b.getValor().equals(CEM)));
+		verify(repository).save(argThat(b -> b.getNome().equals("Novo Nome")));
 	}
 
 	// --- TESTES DE TRANSFERÊNCIA ---

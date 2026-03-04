@@ -20,6 +20,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.example.backend.dto.erro.ApiError;
 import com.example.backend.dto.request.BeneficioRequest;
+import com.example.backend.dto.request.BeneficioUpdateRequest;
 import com.example.backend.dto.request.TransferenciaRequest;
 import com.example.backend.dto.response.BeneficioResponse;
 import com.example.backend.dto.response.TransferenciaResponse;
@@ -83,7 +84,7 @@ public class BeneficioController {
 	@DocPadrao
 	@PutMapping("/{id}")
 	public ResponseEntity<BeneficioResponse> atualizar(@PathVariable Long id,
-			@Valid @RequestBody BeneficioRequest request) {
+			@Valid @RequestBody BeneficioUpdateRequest request) {
 		BeneficioResponse resp = beneficioService.atualizar(id, request);
 
 		return ResponseEntity.ok(resp);
