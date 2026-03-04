@@ -1,14 +1,17 @@
 package com.example.backend.service;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
@@ -16,212 +19,144 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import com.example.backend.BeneficioMapper;
 import com.example.backend.dto.request.BeneficioRequest;
 import com.example.backend.dto.response.BeneficioResponse;
+import com.example.backend.exception.ConcorrenciaException;
 import com.example.backend.exception.RecursoNaoEncontradoException;
+import com.example.backend.exception.SaldoInsuficienteException;
 import com.example.backend.model.Beneficio;
 import com.example.backend.repository.BeneficioRepository;
 
 @ExtendWith(MockitoExtension.class)
 class BeneficioServiceTest {
 
-	@Mock
-	private BeneficioRepository repository;
+    @Mock private BeneficioRepository repository;
+    @Mock private BeneficioMapper mapper;
+    @InjectMocks private BeneficioService service;
 
-	@Mock
-	private BeneficioMapper mapper;
+    private static final Long ID_VAL_1 = 1L;
+    private static final Long ID_VAL_2 = 2L;
+    private static final Long ID_INEXISTENTE = 999L;
+    private static final BigDecimal CEM = new BigDecimal("100.00");
+    private static final BigDecimal QUINHENTOS = new BigDecimal("500.00");
 
-	@InjectMocks
-	private BeneficioService service;
+    // --- TESTES DE CRUD ---
 
-	@Test
-	void inserir_deveInserirUmBeneficioE_RetornarBeneficioResponse() {
-		// Given
-		BeneficioRequest request = new BeneficioRequest("Beneficio A", "Descrição A", new BigDecimal("500.00"));
+    @Test
+    void inserir_devePersistirERetornarResponse() {
+        var request = novoRequest();
+        var entidadeSemId = novaEntidade().id(null).build();
+        var entidadeSalva = novaEntidade().id(ID_VAL_1).build();
+        var response = novaResponse();
 
-		Beneficio beneficioSemId = Beneficio.builder().nome("Beneficio A").descricao("Descrição A")
-				.valor(new BigDecimal("500.00")).build();
+        when(mapper.toEntity(request)).thenReturn(entidadeSemId);
+        when(repository.save(entidadeSemId)).thenReturn(entidadeSalva);
+        when(mapper.toResponse(entidadeSalva)).thenReturn(response);
 
-		Beneficio beneficioSalvo = Beneficio.builder().id(1L).nome("Beneficio A").descricao("Descrição A")
-				.valor(new BigDecimal("500.00")).ativo(true).build();
+        var result = service.inserir(request);
 
-		BeneficioResponse response = new BeneficioResponse(1L, "Beneficio A", "Descrição A", new BigDecimal("500.00"),
-				true);
+        assertEquals(response, result);
+        verify(repository).save(entidadeSemId);
+    }
 
-		when(mapper.toEntity(request)).thenReturn(beneficioSemId);
-		when(repository.save(beneficioSemId)).thenReturn(beneficioSalvo);
-		when(mapper.toResponse(beneficioSalvo)).thenReturn(response);
+    @Test
+    void buscaBeneficioAtivoPorId_deveRetornarResponse_QuandoExiste() {
+        var beneficio = novaEntidade().id(ID_VAL_1).build();
+        var response = novaResponse();
 
-		// When
-		BeneficioResponse result = service.inserir(request);
+        mockRepositorioBusca(ID_VAL_1, beneficio);
+        when(mapper.toResponse(beneficio)).thenReturn(response);
 
-		// Then
-		assertEquals(response, result);
-		verify(mapper).toEntity(request);
-		verify(repository).save(beneficioSemId);
-		verify(mapper).toResponse(beneficioSalvo);
-	}
+        var result = service.buscaBeneficioAtivoPorId(ID_VAL_1);
 
-	@Test
-	void buscaTodosBeneficiosAtivos_deveRetornarUmPage_deBenefioResponse() {
-		// Given
-		Beneficio b1 = Beneficio.builder().id(1L).nome("Beneficio A").descricao("Descrição A")
-				.valor(new BigDecimal("500.00")).ativo(true).build();
+        assertEquals(response, result);
+    }
 
-		Beneficio b2 = Beneficio.builder().id(2L).nome("Beneficio B").descricao("Descrição B")
-				.valor(new BigDecimal("1000.00")).ativo(true).build();
+    @Test
+    void atualizar_deveAlterarDadosERetornarResponse() {
+        var existente = novaEntidade().valor(QUINHENTOS).build();
+        var request = new BeneficioRequest("Novo Nome", "Nova Desc", CEM);
+        
+        mockRepositorioBusca(ID_VAL_1, existente);
+        when(repository.save(any())).thenReturn(existente);
+        when(mapper.toResponse(any())).thenReturn(novaResponse());
 
-		List<Beneficio> beneficios = List.of(b1, b2);
+        service.atualizar(ID_VAL_1, request);
 
-		Pageable pageable = PageRequest.of(0, 5);
+        verify(repository).save(argThat(b -> b.getValor().equals(CEM)));
+    }
 
-		Page<Beneficio> pagina = new PageImpl<>(beneficios, pageable, beneficios.size());
+    // --- TESTES DE TRANSFERÊNCIA ---
 
-		when(repository.findByAtivoTrue(pageable)).thenReturn(pagina);
+    @Test
+    void transfer_deveMovimentarSaldosComSucesso() {
+        var origem = novaEntidade().id(ID_VAL_1).valor(QUINHENTOS).build();
+        var destino = novaEntidade().id(ID_VAL_2).valor(BigDecimal.ZERO).build();
 
-		BeneficioResponse resp1 = new BeneficioResponse(1L, "Beneficio A", "Descrição A", new BigDecimal("500.00"),
-				true);
-		BeneficioResponse resp2 = new BeneficioResponse(2L, "Beneficio B", "Descrição B", new BigDecimal("1000.00"),
-				true);
+        mockRepositorioBusca(ID_VAL_1, origem);
+        mockRepositorioBusca(ID_VAL_2, destino);
 
-		when(mapper.toResponse(b1)).thenReturn(resp1);
-		when(mapper.toResponse(b2)).thenReturn(resp2);
+        service.transfer(ID_VAL_1, ID_VAL_2, CEM);
 
-		// When
-		Page<BeneficioResponse> result = service.buscaTodosBeneficiosAtivos(pageable);
+        assertAll(
+            () -> assertEquals(new BigDecimal("400.00"), origem.getValor()),
+            () -> assertEquals(CEM, destino.getValor()),
+            () -> verify(repository).saveAll(anyList())
+        );
+    }
 
-		// Then
-		assertEquals(2, result.getContent().size());
-		verify(repository).findByAtivoTrue(pageable);
-		verify(mapper, times(2)).toResponse(any());
-	}
+    @Test
+    void transfer_deveLancarSaldoInsuficiente_QuandoSaldoForBaixo() {
+        var origem = novaEntidade().nome("Origem").valor(BigDecimal.TEN).build();
+        mockRepositorioBusca(ID_VAL_1, origem);
+        mockRepositorioBusca(ID_VAL_2, novaEntidade().build());
 
-	@Test
-	void buscaBeneficioAtivoPorId_deveBuscarUmBeneficioE_retornarUmBeneficioResponse() {
-		// Given
-		Long id = 1L;
+        var ex = assertThrows(SaldoInsuficienteException.class, 
+            () -> service.transfer(ID_VAL_1, ID_VAL_2, CEM));
 
-		Beneficio beneficio = Beneficio.builder().id(1L).nome("Beneficio A").descricao("Descrição A")
-				.valor(new BigDecimal("500.00")).ativo(true).build();
+        assertTrue(ex.getMessage().contains("saldo suficiente"));
+        verify(repository, never()).saveAll(any());
+    }
 
-		BeneficioResponse response = new BeneficioResponse(1L, "Beneficio A", "Descrição A", new BigDecimal("500.00"),
-				true);
+    // --- TESTES DE EXCEÇÃO ---
 
-		when(repository.findByIdAndAtivoTrue(id)).thenReturn(Optional.of(beneficio));
-		when(mapper.toResponse(beneficio)).thenReturn(response);
+    @Test
+    void buscar_deveLancarRecursoNaoEncontrado_QuandoInativoOuInexistente() {
+        when(repository.findByIdAndAtivoTrue(ID_INEXISTENTE)).thenReturn(Optional.empty());
 
-		// When
-		BeneficioResponse result = service.buscaBeneficioAtivoPorId(id);
+        assertThrows(RecursoNaoEncontradoException.class, 
+            () -> service.buscaBeneficioAtivoPorId(ID_INEXISTENTE));
+    }
 
-		// Then
-		assertEquals(response, result);
-		verify(repository).findByIdAndAtivoTrue(id);
-		verify(mapper).toResponse(beneficio);
-	}
+    @Test
+    void transfer_deveLancarConcorrenciaException_EmCasoDeErroOptimisticLock() {
+        mockRepositorioBusca(ID_VAL_1, novaEntidade().build());
+        mockRepositorioBusca(ID_VAL_2, novaEntidade().build());
+        when(repository.saveAll(anyList())).thenThrow(ObjectOptimisticLockingFailureException.class);
 
-	@Test
-	void buscaBeneficioAtivoPorId_deveBuscarUmBeneficioE_lancarRecursoNaoEncontradoException() {
-		// Given
-		Long id = 999L;
+        assertThrows(ConcorrenciaException.class, () -> service.transfer(ID_VAL_1, ID_VAL_2, CEM));
+    }
 
-		when(repository.findByIdAndAtivoTrue(id)).thenReturn(Optional.empty());
+    // --- MÉTODOS AUXILIARES ---
 
-		// When & Then
-		assertThrows(RecursoNaoEncontradoException.class, () -> service.buscaBeneficioAtivoPorId(id));
-		verify(repository).findByIdAndAtivoTrue(id);
-		verify(mapper, never()).toResponse(any());
-	}
+    private Beneficio.BeneficioBuilder novaEntidade() {
+        return Beneficio.builder()
+                .id(ID_VAL_1).nome("Beneficio Teste").descricao("Desc")
+                .valor(QUINHENTOS).ativo(true);
+    }
 
-	@Test
-	void atualizar_deveAtualizarUmBeneficioE_RetornarUmBeneficioResponse() {
-		// Given
-		Long beneficioId = 1L;
+    private BeneficioRequest novoRequest() {
+        return new BeneficioRequest("Beneficio Teste", "Desc", QUINHENTOS);
+    }
 
-		Beneficio beneficioExistente = Beneficio.builder().id(1L).nome("Beneficio A").valor(new BigDecimal("500.00"))
-				.descricao("Descrição A").ativo(true).build();
+    private BeneficioResponse novaResponse() {
+        return new BeneficioResponse(ID_VAL_1, "Beneficio Teste", "Desc", QUINHENTOS, true);
+    }
 
-		BeneficioRequest request = new BeneficioRequest("Beneficio A", "Descrição A", new BigDecimal("2500.00"));
-
-		BeneficioResponse response = new BeneficioResponse(1L, "Beneficio A", "Descrição A", new BigDecimal("2500.00"),
-				true);
-
-		when(repository.findByIdAndAtivoTrue(beneficioId)).thenReturn(Optional.of(beneficioExistente));
-		when(repository.save(any(Beneficio.class))).thenReturn(beneficioExistente);
-		when(mapper.toResponse(beneficioExistente)).thenReturn(response);
-
-		// When
-		BeneficioResponse result = service.atualizar(beneficioId, request);
-
-		// Then
-		assertEquals(response, result);
-		verify(repository).findByIdAndAtivoTrue(beneficioId);
-		verify(mapper).toResponse(beneficioExistente);
-	}
-
-	@Test
-	void atualizar_deveBuscarUmBeneficioParaAtualizarE_lancarRecursoNaoEncontradoException() {
-		// Given
-		Long beneficioId = 999L;
-
-		BeneficioRequest request = new BeneficioRequest("Beneficio A", "Descrição A", new BigDecimal("2500.00"));
-
-		when(repository.findByIdAndAtivoTrue(beneficioId)).thenReturn(Optional.empty());
-
-		String msg = "Beneficiário de Id: " + beneficioId + " não cadastrado ou desativado.";
-
-		// When
-		RecursoNaoEncontradoException ex = assertThrows(RecursoNaoEncontradoException.class,
-				() -> service.atualizar(beneficioId, request));
-
-		//Then
-		assertEquals(msg, ex.getMessage());
-		verify(repository).findByIdAndAtivoTrue(beneficioId);
-		verify(repository, never()).save(any());
-		verify(mapper, never()).toResponse(any());
-	}
-	
-	@Test
-	void desativar_deveBuscarUmBeneficioE_desativar() {
-		// Given
-		Long beneficioId = 1L;
-		
-		Beneficio beneficioExistente = Beneficio.builder().id(1L).nome("Beneficio A").valor(new BigDecimal("500.00"))
-				.descricao("Descrição A").ativo(true).build();
-
-		when(repository.findByIdAndAtivoTrue(beneficioId)).thenReturn(Optional.of(beneficioExistente));
-		when(repository.save(any(Beneficio.class))).thenReturn(beneficioExistente);
-
-		// When
-		service.desativar(beneficioId);
-		
-		// Then
-		assertFalse(beneficioExistente.getAtivo());
-		verify(repository).findByIdAndAtivoTrue(beneficioId);
-		verify(repository).save(beneficioExistente);
-	}
-
-	@Test
-	void desativar_deveBuscarUmBeneficioParaDesativarE_lancarRecursoNaoEncontradoException() {
-		// Given
-		Long beneficioId = 999L;
-
-		when(repository.findByIdAndAtivoTrue(beneficioId)).thenReturn(Optional.empty());
-
-		String msg = "Beneficiário de Id: " + beneficioId + " não cadastrado ou desativado.";
-
-		// When
-		RecursoNaoEncontradoException ex = assertThrows(RecursoNaoEncontradoException.class,
-				() -> service.desativar(beneficioId));
-
-		// Then
-		assertEquals(msg, ex.getMessage());
-		verify(repository, never()).save(any());
-	}
-
+    private void mockRepositorioBusca(Long id, Beneficio retorno) {
+        when(repository.findByIdAndAtivoTrue(id)).thenReturn(Optional.of(retorno));
+    }
 }

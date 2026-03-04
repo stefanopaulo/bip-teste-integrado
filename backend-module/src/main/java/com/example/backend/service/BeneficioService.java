@@ -50,7 +50,7 @@ public class BeneficioService {
 
 	@Transactional
 	public BeneficioResponse atualizar(Long id, BeneficioRequest request) {
-		Beneficio beneficio = beneficioPodeSerAtualizado(id);
+		Beneficio beneficio = buscarBeneficioAtivo(id);
 
 		beneficio.setNome(request.nome());
 		beneficio.setValor(request.valor());
@@ -62,7 +62,7 @@ public class BeneficioService {
 
 	@Transactional
 	public void desativar(Long id) {
-		Beneficio beneficio = beneficioPodeSerAtualizado(id);
+		Beneficio beneficio = buscarBeneficioAtivo(id);
 
 		beneficio.setAtivo(false);
 
@@ -71,10 +71,16 @@ public class BeneficioService {
 
 	@Transactional
 	public void transfer(Long fromId, Long toId, BigDecimal amount) {
-		validaDadosTransferencia(fromId, toId, amount);
+		validarDadosTransferencia(fromId, toId, amount);
 
-		Beneficio from = beneficioPodeSerAtualizado(fromId);
-		Beneficio to = beneficioPodeSerAtualizado(toId);
+		List<Beneficio> beneficios = beneficioRepository.findAllById(List.of(fromId, toId));
+		
+		if (beneficios.size() < 2) {
+			throw new RecursoNaoEncontradoException("");
+		}
+		
+		Beneficio from = buscarBeneficioAtivo(fromId);
+		Beneficio to = buscarBeneficioAtivo(toId);
 
 		if (from.getValor().compareTo(amount) < 0) {
 			throw new SaldoInsuficienteException(
@@ -85,13 +91,13 @@ public class BeneficioService {
 		to.setValor(to.getValor().add(amount));
 
 		try {
-			beneficioRepository.saveAll(List.of(from, to));
+			beneficioRepository.saveAllAndFlush(List.of(from, to));
 		} catch (ObjectOptimisticLockingFailureException e) {
 			throw new ConcorrenciaException("Erro de concorrência. Tente novamente.");
 		}
 	}
 
-	private void validaDadosTransferencia(Long fromId, Long toId, BigDecimal amount) {
+	private void validarDadosTransferencia(Long fromId, Long toId, BigDecimal amount) {
 		if (fromId == null || toId == null) {
 			throw new OperacaoIlegalException("Ids dos beneficios não podem ser nulos");
 		}
@@ -105,9 +111,8 @@ public class BeneficioService {
 		}
 	}
 
-	private Beneficio beneficioPodeSerAtualizado(Long id) {
+	private Beneficio buscarBeneficioAtivo(Long id) {
 		return beneficioRepository.findByIdAndAtivoTrue(id).orElseThrow(() -> new RecursoNaoEncontradoException(
 				"Beneficiário de Id: " + id + " não cadastrado ou desativado."));
-
 	}
 }
