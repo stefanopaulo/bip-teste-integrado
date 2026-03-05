@@ -1,43 +1,64 @@
 # 🏗️ Desafio Fullstack Integrado
-🚨 Instrução Importante (LEIA ANTES DE COMEÇAR)
-❌ NÃO faça fork deste repositório.
 
-Este repositório é fornecido como modelo/base. Para realizar o desafio, você deve:
-✅ Opção correta (obrigatória)
-  Clique em “Use this template” (se este repositório estiver marcado como Template)
-OU
-  Clone este repositório e crie um NOVO repositório público em sua conta GitHub.
-📌 O resultado deve ser um repositório próprio, independente deste.
+Este projeto é uma solução completa para gerenciamento e transferência de benefícios, composta por uma API em Spring Boot e uma interface em Angular.
 
-## 🎯 Objetivo
-Criar solução completa em camadas (DB, EJB, Backend, Frontend), corrigindo bug em EJB e entregando aplicação funcional.
+A documentação detalhada e o processso de desenvolvimento de cada parte se encontram dentro das pastas filhas desse repositório (backend-module e frontend).
 
-## 📦 Estrutura
-- db/: scripts schema e seed
-- ejb-module/: serviço EJB com bug a ser corrigido
-- backend-module/: backend Spring Boot
-- frontend/: app Angular
-- docs/: instruções e critérios
-- .github/workflows/: CI
+## Tecnologias Principais
+- Backend: Java 17, Spring Boot 3, Spring Data JPA, PostgreSQL.
 
-## ✅ Tarefas do candidato
-1. Executar db/schema.sql e db/seed.sql
-2. Corrigir bug no BeneficioEjbService
-3. Implementar backend CRUD + integração com EJB
-4. Desenvolver frontend Angular consumindo backend
-5. Implementar testes
-6. Documentar (Swagger, README)
-7. Submeter via fork + PR
+- Frontend: Angular 21, Nginx (Docker).
 
-## 🐞 Bug no EJB
-- Transferência não verifica saldo, não usa locking, pode gerar inconsistência
-- Espera-se correção com validações, rollback, locking/optimistic locking
+- DevOps: Docker, Docker Compose.
 
-## 📊 Critérios de avaliação
-- Arquitetura em camadas (20%)
-- Correção EJB (20%)
-- CRUD + Transferência (15%)
-- Qualidade de código (10%)
-- Testes (15%)
-- Documentação (10%)
-- Frontend (10%)
+---
+
+## Como Rodar com Docker
+A forma mais rápida de testar a aplicação é utilizando o Docker Compose. Ele subirá o Banco de Dados com o schema já populado pelos arquivos da pasta /db, a API e o Frontend.
+
+Na raiz do projeto, execute:
+
+```bash
+docker compose up -d
+```
+
+Acessos:
+
+- Frontend: http://localhost:4222
+
+- Backend (Swagger): http://localhost:8085/swagger-ui.html
+
+*Nota sobre portas: Por padrão, a API está exposta na porta 8085 para evitar conflitos com outros serviços locais (como o Tomcat padrão na 8080). Caso precise alterar, edite o arquivo .env na raiz.*
+
+---
+
+Se quiser apagar os containers depois:
+
+```bash
+docker compose down -v
+```
+
+Isso apagará os containers e volumes criados por esse projeto.
+
+## Como Rodar Manualmente
+
+Caso prefira rodar o projeto manualmente ou via IDE, certifique-se desses passos:
+
+1. Banco de Dados (PostgreSQL)
+  - Crie um banco chamado beneficios_db.
+
+2. Backend
+  - Ajuste as credenciais do banco no arquivo application.properties.
+
+3. Frontend
+  - Certifique-se de que a apiUrl em src/environments/environment.ts aponta para a porta correta da API.
+
+## Nota final
+
+Qualquer outra dúvida sobre o projeto, me encontro a disposição.
+
+---
+
+## 👨‍💻 Autor
+
+**Stefano Souza**
