@@ -62,6 +62,13 @@ import { Beneficio } from '../../models/beneficio.model';
               {{ loading ? 'Transferindo...' : 'Confirmar Transferência' }}
             </button>
           </div>
+          @if (errorMessage) {
+            <div
+              style="color: var(--danger); background: rgba(239, 68, 68, 0.1); padding: 0.75rem; border-radius: 8px; margin-top: 1rem; font-size: 0.9rem; border: 1px solid var(--danger);"
+            >
+              <i class="fas fa-exclamation-circle"></i> {{ errorMessage }}
+            </div>
+          }
         </form>
       </div>
     </div>
@@ -72,6 +79,7 @@ export class TransferenciaFormComponent {
   @Output('onClose') fechar = new EventEmitter<boolean>();
   model: Transferencia = { fromId: null as any, toId: null as any, amount: null as any };
   loading = false;
+  errorMessage = '';
 
   constructor(private service: BeneficioService) {}
 
@@ -81,7 +89,7 @@ export class TransferenciaFormComponent {
       next: () => this.fechar.emit(true),
       error: (err) => {
         console.error(err);
-        alert('Erro ao transferir. Verifique os benefícios e se há saldo suficiente.');
+        this.errorMessage = err.error?.message || 'Erro ao realizar transferência.';
         this.loading = false;
       },
     });

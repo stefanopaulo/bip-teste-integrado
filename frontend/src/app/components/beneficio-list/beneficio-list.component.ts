@@ -23,6 +23,8 @@ export class BeneficioListComponent implements OnInit {
   showTransfer = false;
   selectedBeneficio?: Beneficio;
 
+  showSuccessToast = false;
+
   constructor(
     private service: BeneficioService,
     private cdr: ChangeDetectorRef,
@@ -81,9 +83,16 @@ export class BeneficioListComponent implements OnInit {
   fecharFormulario(recarregar: boolean = false) {
     this.showForm = false;
     this.selectedBeneficio = undefined;
+    this.showSuccessToast = true;
+
     if (recarregar) {
       this.carregar(this.currentPage);
     }
+
+    setTimeout(() => {
+      this.showSuccessToast = false;
+      this.cdr.detectChanges();
+    }, 3000);
   }
 
   abrirTransferencia() {
@@ -92,9 +101,17 @@ export class BeneficioListComponent implements OnInit {
 
   fecharTransferencia(recarregar: boolean = false) {
     this.showTransfer = false;
+
+    this.showSuccessToast = true;
+
     if (recarregar) {
       this.carregar(this.currentPage);
     }
+
+    setTimeout(() => {
+      this.showSuccessToast = false;
+      this.cdr.detectChanges();
+    }, 3000);
   }
 
   deletar(id: number) {

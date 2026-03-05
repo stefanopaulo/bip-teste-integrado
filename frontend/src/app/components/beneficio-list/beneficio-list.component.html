@@ -86,3 +86,9 @@
 <app-transferencia-form [beneficios]="page?.content || []" (onClose)="fecharTransferencia($event)">
 </app-transferencia-form>
 }
+
+@if (showSuccessToast) {
+  <div class="toast-success">
+    <i class="fas fa-check-circle"></i> Operação realizada com sucesso!
+  </div>
+}
