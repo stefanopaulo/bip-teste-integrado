@@ -1,0 +1,36 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:15
+    container_name: beneficios_db
+    environment:
+      - POSTGRES_DB=beneficios_db
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
+    ports:
+      - "5435:5432"
+    volumes:
+      - ./db:/docker-entrypoint-initdb.d
+
+  backend:
+    build: ./backend-module
+    container_name: beneficios-api
+    ports:
+      - "${EXPOSE_PORT}:8080"
+    depends_on:
+      - db
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/beneficios_db
+      - SPRING_DATASOURCE_USERNAME=user
+      - SPRING_DATASOURCE_PASSWORD=pass
+      - EXPOSE_PORT=${EXPOSE_PORT}
+
+  frontend:
+    build: ./frontend
+    container_name: beneficios-ui
+    ports:
+      - "4222:80"
+    depends_on:
+      - backend
