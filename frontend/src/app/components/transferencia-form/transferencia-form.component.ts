@@ -18,47 +18,27 @@ import { Beneficio } from '../../models/beneficio.model';
         </h3>
 
         <form (ngSubmit)="transferir()" #form="ngForm">
-          <!-- <div class="form-group">
-            <label class="form-label">ID do Benefício de Origem</label>
-            <input
-              type="number"
-              class="form-control"
-              name="fromId"
-              [(ngModel)]="model.fromId"
-              required
-            />
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">ID do Benefício de Destino</label>
-            <input
-              type="number"
-              class="form-control"
-              name="toId"
-              [(ngModel)]="model.toId"
-              required
-            />
-          </div> -->
-
           <div class="form-group">
             <label class="form-label">Benefício de Origem</label>
             <select [(ngModel)]="model.fromId" name="fromId" class="form-control" required>
-              <option *ngFor="let b of beneficios" [ngValue]="b.id">
-                {{ b.nome }}
-              </option>
+              <option [ngValue]="null" disabled selected>Selecione o benefício</option>
+              @for (b of beneficios; track b.id) {
+                <option [ngValue]="b.id">
+                  {{ b.nome }}
+                </option>
+              }
             </select>
           </div>
 
           <div class="form-group">
             <label class="form-label">Benefício de Destino</label>
             <select [(ngModel)]="model.toId" name="toId" class="form-control" required>
-              <option
-                *ngFor="let b of beneficios"
-                [ngValue]="b.id"
-                [disabled]="b.id === model.fromId"
-              >
-                {{ b.nome }}
-              </option>
+              <option [ngValue]="null" disabled selected>Selecione o benefício</option>
+              @for (b of beneficios; track b.id) {
+                <option [ngValue]="b.id" [disabled]="b.id === model.fromId">
+                  {{ b.nome }}
+                </option>
+              }
             </select>
           </div>
 

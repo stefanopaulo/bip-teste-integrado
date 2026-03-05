@@ -13,12 +13,15 @@
 </div>
 
 <div class="glass-panel" style="padding: 1.5rem; overflow-x: auto;">
-  <div *ngIf="loading" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+  @if (loading) {
+  <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
     <i class="fa-solid fa-circle-notch fa-spin fa-2x"></i>
     <p style="margin-top: 1rem">Carregando benefícios...</p>
   </div>
+  }
 
-  <table *ngIf="!loading && page?.content?.length" class="table">
+  @if (!loading && page?.content?.length) {
+  <table class="table">
     <thead>
       <tr>
         <th>#</th>
@@ -29,8 +32,9 @@
       </tr>
     </thead>
     <tbody>
-      <tr *ngFor="let item of page?.content">
-        <td>#{{ item.id }}</td>
+      @for (item of page?.content; track item.id; let i = $index;) {
+      <tr>
+        <td>#{{ ((page?.number ?? 0) * (page?.size ?? 0)) + i + 1 }}</td>
         <td><strong>{{ item.nome }}</strong></td>
         <td>{{ item.descricao }}</td>
         <td class="valor">R$ {{ item.valor | number:'1.2-2' }}</td>
@@ -47,15 +51,20 @@
           </div>
         </td>
       </tr>
+      }
     </tbody>
   </table>
+  }
 
-  <div *ngIf="!loading && !page?.content?.length" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+  @if (!loading && !page?.content?.length) {
+  <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
     Nenhum benefício encontrado.
   </div>
+  }
 
   <!-- Paginação -->
-  <div class="pagination" *ngIf="page && page.totalPages > 1">
+  @if (page && page.totalPages > 1) {
+  <div class="pagination">
     <button class="btn btn-ghost" (click)="prevPage()" [disabled]="page.first">
       <i class="fa-solid fa-chevron-left"></i> Anterior
     </button>
@@ -65,10 +74,15 @@
       Próximo <i class="fa-solid fa-chevron-right"></i>
     </button>
   </div>
+  }
 </div>
 
-<app-beneficio-form *ngIf="showForm" [beneficio]="selectedBeneficio" (onClose)="fecharFormulario($event)">
+@if (showForm) {
+<app-beneficio-form [beneficio]="selectedBeneficio" (onClose)="fecharFormulario($event)">
 </app-beneficio-form>
+}
 
-<app-transferencia-form *ngIf="showTransfer" [beneficios]="page?.content || []" (onClose)="fecharTransferencia($event)">
+@if (showTransfer) {
+<app-transferencia-form [beneficios]="page?.content || []" (onClose)="fecharTransferencia($event)">
 </app-transferencia-form>
+}
